@@ -168,6 +168,40 @@ class UnetPatcher(ModelPatcher):
                     self.set_model_patch_replace(patch, target, block_name, number, transformer_index)
         return
 
+    def set_module_forward_overwrite_function(self, modifier):
+        """
+
+        Use this function to change all module forwards in the runtime:
+
+        class ExampleScript(scripts.Script):
+
+            def process_before_every_sampling(self, p, *args, **kwargs):
+                unet = p.sd_model.forge_objects.unet.clone()
+
+                def modifier(original_forward, input, weight, bias, module, root_model):
+
+                    current_transformer_options = root_model.current_transformer_options
+
+                    cond_indices = current_transformer_options['cond_indices']  # for cfg-related methods
+                    uncond_indices = current_transformer_options['uncond_indices']  # for cfg-related methods
+
+                    if module.module_key == 'time_embed.0.bias':
+                        weight = weight + 1.0
+                        bias = bias - 0.5
+
+                    return original_forward(input, weight, bias)
+
+                unet.set_module_forward_overwrite_function(modifier)
+                p.sd_model.forge_objects.unet = unet
+
+                return
+
+        Regional LoRAs, LoRA controls, and several other tech can use this patcher.
+        """
+
+        self.model_options['module_forward_overwrite_function'] = modifier
+        return
+
     def encode_conds_after_clip(self, conds, noise, prompt_type="positive"):
         return encode_model_conds(
             model_function=self.model.extra_conds,

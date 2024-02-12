@@ -243,6 +243,8 @@ def calc_cond_uncond_batch(model, cond, uncond, x_in, timestep, model_options):
 
         c['transformer_options'] = transformer_options
 
+        model.current_transformer_options = transformer_options
+
         if control is not None:
             p = control
             while p is not None:

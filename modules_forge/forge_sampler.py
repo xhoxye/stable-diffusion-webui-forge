@@ -4,6 +4,13 @@ from ldm_patched.modules.samplers import sampling_function
 from ldm_patched.modules import model_management
 
 
+def get_module_from_state_dict_keys(obj, attr):
+    attrs = attr.split(".")[:-1]
+    for name in attrs:
+        obj = getattr(obj, name)
+    return obj
+
+
 def cond_from_a1111_to_patched_ldm(cond):
     if isinstance(cond, torch.Tensor):
         result = dict(
@@ -101,6 +108,21 @@ def sampling_prepare(unet, x):
         memory_required=unet_inference_memory + additional_inference_memory)
 
     real_model = unet.model
+
+    module_forward_overwrite_function = unet.model_options.get('module_forward_overwrite_function', None)
+
+    if module_forward_overwrite_function is not None:
+        sd_keys = unet.model.diffusion_model.state_dict().keys()
+        modules = {}
+
+        for k in sd_keys:
+            modules[k] = get_module_from_state_dict_keys(unet.model.diffusion_model, k)
+
+        for k, m in modules.items():
+            if hasattr(m, 'module_key'):
+                m.module_key = k
+                m.module_forward_overwrite_function = module_forward_overwrite_function
+                m.root_model = unet
 
     percent_to_timestep_function = lambda p: real_model.model_sampling.percent_to_sigma(p)
 

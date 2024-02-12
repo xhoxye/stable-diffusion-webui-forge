@@ -25,90 +25,113 @@ def use_patched_ops(operations):
 
 
 def cast_bias_weight(s, input):
-    bias = None
     non_blocking = ldm_patched.modules.model_management.device_supports_non_blocking(input.device)
-    if s.bias is not None:
-        bias = s.bias.to(device=input.device, dtype=input.dtype, non_blocking=non_blocking)
-    weight = s.weight.to(device=input.device, dtype=input.dtype, non_blocking=non_blocking)
+
+    weight = s.weight
+    bias = s.bias if s.bias is not None else None
+
+    if s.ldm_patched_cast_weights:
+        weight = weight.to(device=input.device, dtype=input.dtype, non_blocking=non_blocking)
+        bias = bias.to(device=input.device, dtype=input.dtype, non_blocking=non_blocking) if bias is not None else None
+
     return weight, bias
 
 
 class disable_weight_init:
     class Linear(torch.nn.Linear):
         ldm_patched_cast_weights = False
+        module_key = ''
+
         def reset_parameters(self):
             return None
 
-        def forward_ldm_patched_cast_weights(self, input):
+        def forward(self, input, *args, **kwargs):
             weight, bias = cast_bias_weight(self, input)
-            return torch.nn.functional.linear(input, weight, bias)
 
-        def forward(self, *args, **kwargs):
-            if self.ldm_patched_cast_weights:
-                return self.forward_ldm_patched_cast_weights(*args, **kwargs)
+            module_forward_function = torch.nn.functional.linear
+            module_forward_overwrite_function = getattr(self, 'module_forward_overwrite_function', None)
+
+            if module_forward_overwrite_function is not None:
+                return module_forward_overwrite_function(module_forward_function, input, weight, bias, self,
+                                                         getattr(self, 'root_model', None))
             else:
-                return super().forward(*args, **kwargs)
+                return module_forward_function(input, weight, bias)
 
     class Conv2d(torch.nn.Conv2d):
         ldm_patched_cast_weights = False
+        module_key = ''
+
         def reset_parameters(self):
             return None
 
-        def forward_ldm_patched_cast_weights(self, input):
+        def forward(self, input, *args, **kwargs):
             weight, bias = cast_bias_weight(self, input)
-            return self._conv_forward(input, weight, bias)
 
-        def forward(self, *args, **kwargs):
-            if self.ldm_patched_cast_weights:
-                return self.forward_ldm_patched_cast_weights(*args, **kwargs)
+            module_forward_function = self._conv_forward
+            module_forward_overwrite_function = getattr(self, 'module_forward_overwrite_function', None)
+
+            if module_forward_overwrite_function is not None:
+                return module_forward_overwrite_function(module_forward_function, input, weight, bias, self,
+                                                         getattr(self, 'root_model', None))
             else:
-                return super().forward(*args, **kwargs)
+                return module_forward_function(input, weight, bias)
 
     class Conv3d(torch.nn.Conv3d):
         ldm_patched_cast_weights = False
+        module_key = ''
+
         def reset_parameters(self):
             return None
 
-        def forward_ldm_patched_cast_weights(self, input):
+        def forward(self, input, *args, **kwargs):
             weight, bias = cast_bias_weight(self, input)
-            return self._conv_forward(input, weight, bias)
 
-        def forward(self, *args, **kwargs):
-            if self.ldm_patched_cast_weights:
-                return self.forward_ldm_patched_cast_weights(*args, **kwargs)
+            module_forward_function = self._conv_forward
+            module_forward_overwrite_function = getattr(self, 'module_forward_overwrite_function', None)
+
+            if module_forward_overwrite_function is not None:
+                return module_forward_overwrite_function(module_forward_function, input, weight, bias, self,
+                                                         getattr(self, 'root_model', None))
             else:
-                return super().forward(*args, **kwargs)
+                return module_forward_function(input, weight, bias)
 
     class GroupNorm(torch.nn.GroupNorm):
         ldm_patched_cast_weights = False
+        module_key = ''
+
         def reset_parameters(self):
             return None
 
-        def forward_ldm_patched_cast_weights(self, input):
+        def forward(self, input, *args, **kwargs):
             weight, bias = cast_bias_weight(self, input)
-            return torch.nn.functional.group_norm(input, self.num_groups, weight, bias, self.eps)
 
-        def forward(self, *args, **kwargs):
-            if self.ldm_patched_cast_weights:
-                return self.forward_ldm_patched_cast_weights(*args, **kwargs)
+            module_forward_function = lambda i, w, b: torch.nn.functional.group_norm(i, self.num_groups, w, b, self.eps)
+            module_forward_overwrite_function = getattr(self, 'module_forward_overwrite_function', None)
+
+            if module_forward_overwrite_function is not None:
+                return module_forward_overwrite_function(module_forward_function, input, weight, bias, self,
+                                                         getattr(self, 'root_model', None))
             else:
-                return super().forward(*args, **kwargs)
-
+                return module_forward_function(input, weight, bias)
 
     class LayerNorm(torch.nn.LayerNorm):
         ldm_patched_cast_weights = False
+        module_key = ''
+
         def reset_parameters(self):
             return None
 
-        def forward_ldm_patched_cast_weights(self, input):
+        def forward(self, input, *args, **kwargs):
             weight, bias = cast_bias_weight(self, input)
-            return torch.nn.functional.layer_norm(input, self.normalized_shape, weight, bias, self.eps)
 
-        def forward(self, *args, **kwargs):
-            if self.ldm_patched_cast_weights:
-                return self.forward_ldm_patched_cast_weights(*args, **kwargs)
+            module_forward_function = lambda i, w, b: torch.nn.functional.layer_norm(i, self.normalized_shape, w, b, self.eps)
+            module_forward_overwrite_function = getattr(self, 'module_forward_overwrite_function', None)
+
+            if module_forward_overwrite_function is not None:
+                return module_forward_overwrite_function(module_forward_function, input, weight, bias, self,
+                                                         getattr(self, 'root_model', None))
             else:
-                return super().forward(*args, **kwargs)
+                return module_forward_function(input, weight, bias)
 
     @classmethod
     def conv_nd(s, dims, *args, **kwargs):

@@ -74,6 +74,21 @@ class FreeUForForge(scripts.Script):
         # unet = set_freeu_v2_patch(unet, freeu_b1, freeu_b2, freeu_s1, freeu_s2)
         unet = opFreeU_V2.patch(unet, freeu_b1, freeu_b2, freeu_s1, freeu_s2)[0]
 
+        def modifier(original_forward, input, weight, bias, module, root_model):
+
+            current_transformer_options = root_model.model.current_transformer_options
+
+            cond_indices = current_transformer_options['cond_indices']  # for cfg-related methods
+            uncond_indices = current_transformer_options['uncond_indices']  # for cfg-related methods
+
+            if module.module_key == 'time_embed.0.bias':
+                weight = weight + 1.0
+                bias = bias - 0.5
+
+            return original_forward(input, weight, bias)
+
+        unet.set_module_forward_overwrite_function(modifier)
+
         p.sd_model.forge_objects.unet = unet
 
         # Below codes will add some logs to the texts below the image outputs on UI.
