@@ -1,50 +1,47 @@
 # Stable Diffusion WebUI Forge
 
-Stable Diffusion WebUI Forge is a platform on top of [Stable Diffusion WebUI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) (based on [Gradio](https://www.gradio.app/)) to make development easier, optimize resource management, and speed up inference.
+Stable Diffusion WebUI Forge 是一个建立在 [Stable Diffusion WebUI](https://github.com/AUTOMATIC1111/stable-diffusion-webui)（基于 [Gradio](https://www.gradio.app/)）之上的平台，旨在简化开发过程、优化资源管理并加快推理速度。
 
-The name "Forge" is inspired from "Minecraft Forge". This project is aimed at becoming SD WebUI's Forge.
+“Forge”这个名字来源于“Minecraft Forge”。本项目的目标是成为 SD WebUI 的 Forge。
 
-Compared to original WebUI (for SDXL inference at 1024px), you can expect the below speed-ups:
+相比于原始的 WebUI（针对 SDXL 在 1024px 分辨率下的推理），你可以期待以下性能提升：
 
-1. If you use common GPU like 8GB vram, you can expect to get about **30~45% speed up** in inference speed (it/s), the GPU memory peak (in task manager) will drop about 700MB to 1.3GB, the maximum diffusion resolution (that will not OOM) will increase about 2x to 3x, and the maximum diffusion batch size (that will not OOM) will increase about 4x to 6x.
+1. 如果你使用的是常见的 8GB 显存 GPU，可以预期推理速度（it/s）提高约 **30~45%**，GPU 内存峰值（在任务管理器中显示）将降低约 700MB 至 1.3GB，不会发生内存溢出（OOM）的最大扩散分辨率将提升约 2 倍至 3 倍，而不会内存溢出（OOM） 的最大扩散批次大小将会增加约 4 倍至 6 倍。
 
-2. If you use less powerful GPU like 6GB vram, you can expect to get about **60~75% speed up** in inference speed (it/s), the GPU memory peak (in task manager) will drop about 800MB to 1.5GB, the maximum diffusion resolution (that will not OOM) will increase about 3x, and the maximum diffusion batch size (that will not OOM) will increase about 4x.
+2. 若你使用的是较弱的 6GB 显存 GPU，则可以预期推理速度（it/s）提升约 **60~75%**，GPU 内存峰值下降约 800MB 至 1.5GB，不会内存溢出（OOM） 的最大扩散分辨率将提升约 3 倍，且不会内存溢出（OOM） 的最大扩散批次大小会增加约 4 倍。
 
-3. If you use powerful GPU like 4090 with 24GB vram, you can expect to get about **3~6% speed up** in inference speed (it/s), the GPU memory peak (in task manager) will drop about 1GB to 1.4GB, the maximum diffusion resolution (that will not OOM) will increase about 1.6x, and the maximum diffusion batch size (that will not OOM) will increase about 2x.
+3. 对于像 4090 这样拥有 24GB 显存的强大 GPU，你可以预期推理速度（it/s）提升约 **3~6%**，GPU 内存峰值将降低约 1GB 至 1.4GB，不会发生内存溢出（OOM） 的最大扩散分辨率将提升约 1.6 倍，而不会内存溢出（OOM） 的最大扩散批次大小将增加约 2 倍。
 
-4. If you use ControlNet for SDXL, the maximum ControlNet count (that will not OOM) will increase about 2x, the speed with SDXL+ControlNet will **speed up about 30~45%**.
+4. 若你在 SDXL 中使用 ControlNet，不会发生内存溢出（OOM） 的最大 ControlNet 数量将提升约 2 倍，并且使用 SDXL+ControlNet 时的速度将 **提升约 30~45%**。
 
-Another very important change that Forge brings is **Unet Patcher**. Using Unet Patcher, methods like Self-Attention Guidance, Kohya High Res Fix, FreeU, StyleAlign, Hypertile can all be implemented in about 100 lines of codes. 
+Forge 引入的一项非常重要的改变是 **Unet 补丁工具**（Unet Patcher）。通过 Unet Patcher，诸如 Self-Attention Guidance、Kohya High Res Fix、FreeU、StyleAlign、Hypertile 等方法都可以在大约 100 行代码内实现。
 
-Thanks to Unet Patcher, many new things are possible now and supported in Forge, including SVD, Z123, masked Ip-adapter, masked controlnet, photomaker, etc.
+得益于 Unet Patcher，现在 Forge 支持许多新的功能，包括 SVD、Z123、带蒙版的 Ip-adapter、带蒙版的 controlnet、photomaker 等等。
 
-**No need to monkeypatch UNet and conflict other extensions anymore!**
+**从此无需对 UNet 进行猴子补丁（monkeypatch）操作，也不必担心与其他扩展产生冲突！** 
 
-Forge also adds a few samplers, including but not limited to DDPM, DDPM Karras, DPM++ 2M Turbo, DPM++ 2M SDE Turbo, LCM Karras, Euler A Turbo, etc. (LCM is already in original webui since 1.7.0).
+Forge 还增加了一些采样器，包括但不限于 DDPM、DDPM Karras、DPM++ 2M Turbo、DPM++ 2M SDE Turbo、LCM Karras、Euler A Turbo 等（自 1.7.0 版本起，LCM 已经包含在原始 WebUI 中）。
 
-Finally, Forge promise that we will only do our jobs. Forge will never add unnecessary opinioned changes to the user interface. You are still using 100% Automatic1111 WebUI.
+最后，Forge 承诺我们只做分内之事。Forge 将永远不会对用户界面添加不必要的主观性改动。你仍旧在使用 100% Automatic1111 的 WebUI。 
+# 安装 Forge
 
-# Installing Forge
+如果你熟悉 Git 并且希望将 Forge 作为 SD-WebUI 的另一个分支进行安装，请参阅 [此处](https://github.com/continue-revolution/sd-webui-animatediff/blob/forge/master/docs/how-to-use.md#you-have-a1111-and-you-know-git)。通过这种方法，你可以复用之前在原始 OG SD-WebUI 中安装的所有 SD 检查点和扩展，但你需要知道自己正在做什么操作。
 
-If you are proficient in Git and you want to install Forge as another branch of SD-WebUI, please see [here](https://github.com/continue-revolution/sd-webui-animatediff/blob/forge/master/docs/how-to-use.md#you-have-a1111-and-you-know-git). In this way, you can reuse all SD checkpoints and all extensions you installed previously in your OG SD-WebUI, but you should know what you are doing.
+如果你清楚自己在做什么，可以采用与 SD-WebUI 相同的方法来安装 Forge（安装 Git、Python，克隆 forge 仓库 `https://github.com/lllyasviel/stable-diffusion-webui-forge.git`，然后运行 webui-user.bat）。
 
-If you know what you are doing, you can install Forge using same method as SD-WebUI. (Install Git, Python, Git Clone the forge repo `https://github.com/lllyasviel/stable-diffusion-webui-forge.git` and then run webui-user.bat).
+**或者，你也可以直接使用一键安装包（其中已包含 Git 和 Python）。**
 
-**Or you can just use this one-click installation package (with git and python included).**
+[>>> 点击此处下载一键安装包 <<<](https://github.com/lllyasviel/stable-diffusion-webui-forge/releases/download/latest/webui_forge_cu121_torch21.7z)
 
-[>>> Click Here to Download One-Click Package<<<](https://github.com/lllyasviel/stable-diffusion-webui-forge/releases/download/latest/webui_forge_cu121_torch21.7z)
-
-After you download, you uncompress, use `update.bat` to update, and use `run.bat` to run.
-
-Note that running `update.bat` is important, otherwise you may be using a previous version with potential bugs unfixed.
+下载后解压，使用 `update.bat` 进行更新，并使用 `run.bat` 来运行程序。请注意，运行 `update.bat` 是很重要的，否则你可能仍在使用带有未修复潜在问题的旧版本。
 
 ![image](https://github.com/lllyasviel/stable-diffusion-webui-forge/assets/19834515/c49bd60d-82bd-4086-9859-88d472582b94)
 
-# Screenshots of Comparison
+# 对比截图
 
-I tested with several devices, and this is a typical result from 8GB VRAM (3070ti laptop) with SDXL.
+我在多个设备上进行了测试，以下是一个典型的在配备 8GB 显存（3070ti 笔记本电脑）并使用 SDXL 的测试结果。
 
-**This is original WebUI:**
+**这是原版 WebUI：**
 
 ![image](https://github.com/lllyasviel/stable-diffusion-webui-forge/assets/19834515/16893937-9ed9-4f8e-b960-70cd5d1e288f)
 
@@ -54,9 +51,9 @@ I tested with several devices, and this is a typical result from 8GB VRAM (3070t
 
 ![image](https://github.com/lllyasviel/stable-diffusion-webui-forge/assets/19834515/96e5e171-2d74-41ba-9dcc-11bf68be7e16)
 
-(average about 7.4GB/8GB, peak at about 7.9GB/8GB)
+（平均占用约 7.4GB/8GB，峰值约为 7.9GB/8GB）
 
-**This is WebUI Forge:**
+**这是 WebUI Forge 版本：**
 
 ![image](https://github.com/lllyasviel/stable-diffusion-webui-forge/assets/19834515/ca5e05ed-bd86-4ced-8662-f41034648e8c)
 
@@ -66,30 +63,28 @@ I tested with several devices, and this is a typical result from 8GB VRAM (3070t
 
 ![image](https://github.com/lllyasviel/stable-diffusion-webui-forge/assets/19834515/c4f723c3-6ea7-4539-980b-0708ed2a69aa)
 
-(average and peak are all 6.3GB/8GB)
+（平均值和峰值均为 6.3GB/8GB）
 
-You can see that Forge does not change WebUI results. Installing Forge is not a seed breaking change. 
+可以看到，Forge 不会改变 WebUI 的输出结果。安装 Forge 并不是一个会导致效果破坏的变化。Forge 即使对于最复杂的提示如 `fantasy landscape with a [mountain:lake:0.25] and [an oak:a christmas tree:0.75][ in foreground::0.6][ in background:0.25] [shoddy:masterful:0.5]` 也能完美地保持 WebUI 原有不变的结果。
 
-Forge can perfectly keep WebUI unchanged even for most complicated prompts like `fantasy landscape with a [mountain:lake:0.25] and [an oak:a christmas tree:0.75][ in foreground::0.6][ in background:0.25] [shoddy:masterful:0.5]`.
+所有你之前的成果在 Forge 中依然能够正常工作！
 
-All your previous works still work in Forge!
+# Forge 后端
 
-# Forge Backend
+Forge 后端移除了 WebUI 中所有与资源管理相关的代码，并对所有内容进行了重构。之前所有的命令行标志，如 `medvram, lowvram, medvram-sdxl, precision full, no half, no half vae, attention_xxx, upcast unet` 等，现在均已 **移除**。添加这些标志不会导致错误，但它们现在将不再起任何作用。**我们强烈建议 Forge 用户移除所有命令行标志，并让 Forge 自动决定如何加载模型。**
 
-Forge backend removes all WebUI's codes related to resource management and reworked everything. All previous CMD flags like `medvram, lowvram, medvram-sdxl, precision full, no half, no half vae, attention_xxx, upcast unet`, ... are all **REMOVED**. Adding these flags will not cause error but they will not do anything now. **We highly encourage Forge users to remove all cmd flags and let Forge to decide how to load models.**
+在没有任何命令行标志的情况下，Forge 可以在 4GB 显存下运行 SDXL，在 2GB 显存下运行 SD1.5。
 
-Without any cmd flag, Forge can run SDXL with 4GB vram and SD1.5 with 2GB vram.
+**唯一可能仍需使用的标志**是 `--always-offload-from-vram`（此选项将会使程序运行速度变 **慢**）。这个选项会让 Forge 始终从显存中卸载模型。当你需要与其他软件同时使用并希望 Forge 使用较少的显存、为其他软件腾出一些显存空间时，或者当你正在使用某些会与 Forge 竞争显存的老版扩展时，以及（非常罕见地）遇到内存溢出（OOM）情况时，这个选项可能会有用。
 
-**The only one flag that you may still need** is `--always-offload-from-vram` (This flag will make things **slower**). This option will let Forge always unload models from VRAM. This can be useful if you use multiple software together and want Forge to use less VRAM and give some vram to other software, or when you are using some old extensions that will compete vram with Forge, or (very rarely) when you get OOM.
+如果你确实想尝试调整命令行标志，还可以通过以下方式额外控制 GPU：
 
-If you really want to play with cmd flags, you can additionally control the GPU with:
-
-(extreme VRAM cases)
+（极端显存占用情况）
 
     --always-gpu
     --always-cpu
 
-(rare attention cases)
+（少见的注意力机制案例）
 
     --attention-split
     --attention-quad
@@ -97,7 +92,7 @@ If you really want to play with cmd flags, you can additionally control the GPU 
     --disable-xformers
     --disable-attention-upcast
 
-(float point type)
+（浮点类型）
 
     --all-in-fp32
     --all-in-fp16
@@ -113,21 +108,21 @@ If you really want to play with cmd flags, you can additionally control the GPU 
     --clip-in-fp16
     --clip-in-fp32
 
-(rare platforms)
+（稀有平台支持）
 
     --directml
     --disable-ipex-hijack
     --pytorch-deterministic
 
-Again, Forge do not recommend users to use any cmd flags unless you are very sure that you really need these.
+再次强调，除非你非常确定自己确实需要这些选项，否则 Forge 不推荐用户使用任何命令行标志。
 
-# UNet Patcher
+# UNet 补丁工具
 
-Note that [Forge does not use any other software as backend](https://github.com/lllyasviel/stable-diffusion-webui-forge/discussions/169). The full name of the backend is `Stable Diffusion WebUI with Forge backend`, or for simplicity, the `Forge backend`. The API and python symbols are made similar to previous software only for reducing the learning cost of developers.
+请注意，Forge 并未使用任何其他软件作为后端支持。其后端的全称是 `Stable Diffusion WebUI with Forge 后端`，或简称为 `Forge 后端`。为了降低开发者的学习成本，API 和 Python 符号设计与先前的软件相似。
 
-Now developing an extension is super simple. We finally have a patchable UNet.
+现在开发扩展变得超级简单。我们终于有了一个可补丁化的 UNet 结构。
 
-Below is using one single file with 80 lines of codes to support FreeU:
+以下是一个仅包含 80 行代码的单个文件示例，用于支持 FreeU 功能：
 
 `extensions-builtin/sd_forge_freeu/scripts/forge_freeu.py`
 
@@ -218,17 +213,17 @@ class FreeUForForge(scripts.Script):
         return
 ```
 
-It looks like this:
+其外观如下所示：
 
 ![image](https://github.com/lllyasviel/stable-diffusion-webui-forge/assets/19834515/277bac6e-5ea7-4bff-b71a-e55a60cfc03c)
 
-Similar components like HyperTile, KohyaHighResFix, SAG, can all be implemented within 100 lines of codes (see also the codes).
+类似 HyperTile、KohyaHighResFix、SAG（Self-Attention Guidance）这样的组件，都可以在 100 行代码内实现（可查看相关代码）。
 
 ![image](https://github.com/lllyasviel/stable-diffusion-webui-forge/assets/19834515/06472b03-b833-4816-ab47-70712ac024d3)
 
-ControlNets can finally be called by different extensions.
+ControlNets 终于可以被不同的扩展程序调用。
 
-Implementing Stable Video Diffusion and Zero123 are also super simple now (see also the codes). 
+现在实现 Stable Video Diffusion 和 Zero123 也非常简单（请参阅相关代码）。
 
 *Stable Video Diffusion:*
 
@@ -346,27 +341,27 @@ update_svd_filenames()
 script_callbacks.on_ui_tabs(on_ui_tabs)
 ```
 
-Note that although the above codes look like independent codes, they actually will automatically offload/unload any other models. For example, below is me opening webui, load SDXL, generated an image, then go to SVD, then generated image frames. You can see that the GPU memory is perfectly managed and the SDXL is moved to RAM then SVD is moved to GPU. 
+请注意，尽管上述代码看起来像是独立的代码片段，但实际上它们会自动卸载/释放任何其他模型。例如，下面是我打开 WebUI、加载 SDXL、生成一张图像，然后转到 SVD（Stable Video Diffusion），并生成图像帧的过程。可以看到 GPU 内存得到了完美的管理，SDXL 被移动至内存中，随后 SVD 被移动至 GPU 中运行。
 
-Note that this management is fully automatic. This makes writing extensions super simple.
+注意，这一资源管理过程完全自动化。这使得编写扩展程序变得非常简单。
 
 ![image](https://github.com/lllyasviel/stable-diffusion-webui-forge/assets/19834515/de1a2d05-344a-44d7-bab8-9ecc0a58a8d3)
 
 ![image](https://github.com/lllyasviel/stable-diffusion-webui-forge/assets/19834515/14bcefcf-599f-42c3-bce9-3fd5e428dd91)
 
-Similarly, Zero123:
+同样地，对于 Zero123：
 
 ![image](https://github.com/lllyasviel/stable-diffusion-webui-forge/assets/19834515/7685019c-7239-47fb-9cb5-2b7b33943285)
 
-### Write a simple ControlNet:
+### 编写一个简单的 ControlNet 示例：
 
-Below is a simple extension to have a completely independent pass of ControlNet that never conflicts any other extensions:
+以下是一个简单的扩展示例，展示了一个完全独立的 ControlNet 通道，它不会与其他任何扩展冲突：
 
 `extensions-builtin/sd_forge_controlnet_example/scripts/sd_forge_controlnet_example.py`
 
-Note that this extension is hidden because it is only for developers. To see it in UI, use `--show-controlnet-example`.
+请注意，这个扩展是隐藏的，因为它仅供开发者使用。若要在用户界面中查看，请使用命令行选项 `--show-controlnet-example`。
 
-The memory optimization in this example is fully automatic. You do not need to care about memory and inference speed, but you may want to cache objects if you wish.
+此示例中的内存优化完全自动进行。你无需关心内存和推理速度的问题，但如果你希望提升性能，可以考虑缓存对象。
 
 ```python
 # Use --show-controlnet-example to see this extension.
@@ -535,16 +530,13 @@ if not cmd_opts.show_controlnet_example:
 ![image](https://github.com/lllyasviel/stable-diffusion-webui-forge/assets/19834515/822fa2fc-c9f4-4f58-8669-4b6680b91063)
 
 
-### Add a preprocessor
+### 添加预处理器
 
-Below is the full codes to add a normalbae preprocessor with perfect memory managements.
+以下代码展示了如何添加一个具有完美内存管理功能的 normalbae 预处理器。
 
-You can use arbitrary independent extensions to add a preprocessor.
+你可以使用任意独立扩展来添加预处理器，且你的预处理器将通过 `modules_forge.shared.preprocessors` 被所有其他扩展读取和使用。
 
-Your preprocessor will be read by all other extensions using `modules_forge.shared.preprocessors`
-
-Below codes are in `extensions-builtin\forge_preprocessor_normalbae\scripts\preprocessor_normalbae.py`
-
+以下是位于 `extensions-builtin\forge_preprocessor_normalbae\scripts\preprocessor_normalbae.py` 中的相关代码：
 ```python
 from modules_forge.supported_preprocessor import Preprocessor, PreprocessorParameter
 from modules_forge.shared import preprocessor_dir, add_supported_preprocessor
@@ -626,11 +618,11 @@ add_supported_preprocessor(PreprocessorNormalBae())
 
 ```
 
-# New features (that are not available in original WebUI)
+# 新特性（原始 WebUI 不具备的功能）
 
-Thanks to Unet Patcher, many new things are possible now and supported in Forge, including SVD, Z123, masked Ip-adapter, masked controlnet, photomaker, etc.
+得益于 Unet 补丁工具，Forge 现在支持许多新的功能，包括 SVD、Z123、带蒙版的 Ip-Adapter、带蒙版的控制网络（ControlNet）、照片生成器（PhotoMaker）等。
 
-Masked Ip-Adapter
+带蒙版的 Ip-Adapter
 
 ![image](https://github.com/lllyasviel/stable-diffusion-webui-forge/assets/19834515/d26630f9-922d-4483-8bf9-f364dca5fd50)
 
@@ -638,7 +630,7 @@ Masked Ip-Adapter
 
 ![image](https://github.com/lllyasviel/stable-diffusion-webui-forge/assets/19834515/d9ed4a01-70d4-45b4-a6a7-2f765f158fae)
 
-Masked ControlNet
+带蒙版的 ControlNet
 
 ![image](https://github.com/lllyasviel/stable-diffusion-webui-forge/assets/19834515/872d4785-60e4-4431-85c7-665c781dddaa)
 
@@ -646,17 +638,17 @@ Masked ControlNet
 
 ![image](https://github.com/lllyasviel/stable-diffusion-webui-forge/assets/19834515/b3684a15-8895-414e-8188-487269dfcada)
 
-PhotoMaker
+照片生成器（PhotoMaker）
 
-(Note that photomaker is a special control that need you to add the trigger word "photomaker". Your prompt should be like "a photo of photomaker")
+（请注意，PhotoMaker 是一个特殊控制器，需要你在提示词中添加触发词 "photomaker"。你的提示应类似于 "一张 photomaker 的照片")
 
 ![image](https://github.com/lllyasviel/stable-diffusion-webui-forge/assets/19834515/07b0b626-05b5-473b-9d69-3657624d59be)
 
-Marigold Depth
+Marigold 深度效果
 
 ![image](https://github.com/lllyasviel/stable-diffusion-webui-forge/assets/19834515/bdf54148-892d-410d-8ed9-70b4b121b6e7)
 
-# New Samplers (that are not in origin)
+# 新增采样器（原版未包含的）
 
     DDPM
     DDPM Karras
@@ -665,16 +657,16 @@ Marigold Depth
     LCM Karras
     Euler A Turbo
 
-# About Extensions
+# 关于扩展插件
 
-ControlNet and TiledVAE are integrated, and you should uninstall these two extensions:
+ControlNet 和 TiledVAE 已被集成，你应该卸载这两个扩展：
 
     sd-webui-controlnet
     multidiffusion-upscaler-for-automatic1111
 
-Note that **AnimateDiff** is under construction by [continue-revolution](https://github.com/continue-revolution) at [sd-webui-animatediff forge/master branch](https://github.com/continue-revolution/sd-webui-animatediff/tree/forge/master) and [sd-forge-animatediff](https://github.com/continue-revolution/sd-forge-animatediff) (they are in sync). (continue-revolution original words: prompt travel, inf t2v, controlnet v2v have been proven to work well; motion lora, i2i batch still under construction and may be finished in a week")
+注意，**AnimateDiff** 正在由 [continue-revolution](https://github.com/continue-revolution) 在 [sd-webui-animatediff forge/master 分支](https://github.com/continue-revolution/sd-webui-animatediff/tree/forge/master) 和 [sd-forge-animatediff](https://github.com/continue-revolution/sd-forge-animatediff) （它们保持同步更新）进行构建。（continue-revolution 原话：“prompt travel, inf t2v, controlnet v2v 已经证明工作良好；motion lora, i2i batch 功能仍在建设中，可能在一个星期内完成”）
 
-Other extensions should work without problems, like:
+其他扩展如以下所列应当可以正常运行：
 
     canvas-zoom
     translations/localizations
@@ -683,14 +675,12 @@ Other extensions should work without problems, like:
     Ultimate SD Upscale
     Reactor
 
-However, if newer extensions use Forge, their codes can be much shorter. 
+然而，如果新扩展使用 Forge 构建，其代码量会大大减少。通常情况下，如果旧扩展采用 Forge 的 Unet 补丁工具重构，大约可以移除 80% 的代码，特别是当它们需要调用 ControlNet 时。
 
-Usually if an old extension rework using Forge's unet patcher, 80% codes can be removed, especially when they need to call controlnet.
+# 贡献指南
 
-# Contribution
+Forge 使用机器人每天下午从 https://github.com/AUTOMATIC1111/stable-diffusion-webui/tree/dev 自动获取提交和代码（若合并通过自动化的 Git 机器人或我的编译器，或者通过我的 ChatGPT 机器人成功完成），否则会在半夜（如果我的编译器和 ChatGPT 机器人都未能自动合并，则我将手动审查并处理）。
 
-Forge uses a bot to get commits and codes from https://github.com/AUTOMATIC1111/stable-diffusion-webui/tree/dev every afternoon (if merge is automatically successful by a git bot, or by my compiler, or by my ChatGPT bot) or mid-night (if my compiler and my ChatGPT bot both failed to merge and I review it manually).
+所有能在 https://github.com/AUTOMATIC1111/stable-diffusion-webui/tree/dev 实现的 PR 应该提交到那里。
 
-All PRs that can be implemented in https://github.com/AUTOMATIC1111/stable-diffusion-webui/tree/dev should submit PRs there.
-
-Feel free to submit PRs related to the functionality of Forge here.
+欢迎在此处提交与 Forge 功能相关的 PR。
