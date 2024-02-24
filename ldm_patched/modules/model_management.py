@@ -268,17 +268,23 @@ print("VAE dtype:", VAE_DTYPE)
 
 current_loaded_models = []
 
-def module_size(module):
+def module_size(module, exclude_device=None):
     module_mem = 0
     sd = module.state_dict()
     for k in sd:
         t = sd[k]
+
+        if exclude_device is not None:
+            if t.device == exclude_device:
+                continue
+
         module_mem += t.nelement() * t.element_size()
     return module_mem
 
 class LoadedModel:
-    def __init__(self, model):
+    def __init__(self, model, memory_required):
         self.model = model
+        self.memory_required = memory_required
         self.model_accelerated = False
         self.device = model.load_device
 
@@ -286,14 +292,13 @@ class LoadedModel:
         return self.model.model_size()
 
     def model_memory_required(self, device):
-        if device == self.model.current_device:
-            return 0
-        else:
-            return self.model_memory()
+        return module_size(self.model.model, exclude_device=device)
 
-    def model_load(self, lowvram_model_memory=0):
+    def model_load(self, async_kept_memory=-1):
         patch_model_to = None
-        if lowvram_model_memory == 0:
+        disable_async_load = async_kept_memory < 0
+
+        if disable_async_load:
             patch_model_to = self.device
 
         self.model.model_patches_to(self.device)
@@ -306,21 +311,31 @@ class LoadedModel:
             self.model_unload()
             raise e
 
-        if lowvram_model_memory > 0:
-            print("loading in lowvram mode", lowvram_model_memory/(1024 * 1024))
+        if not disable_async_load:
+            print("[Memory Management] Requested Async Preserved Memory (MB) = ", async_kept_memory / (1024 * 1024))
+            real_async_memory = 0
+            real_kept_memory = 0
             mem_counter = 0
             for m in self.real_model.modules():
                 if hasattr(m, "ldm_patched_cast_weights"):
                     m.prev_ldm_patched_cast_weights = m.ldm_patched_cast_weights
                     m.ldm_patched_cast_weights = True
                     module_mem = module_size(m)
-                    if mem_counter + module_mem < lowvram_model_memory:
+                    if mem_counter + module_mem < async_kept_memory:
                         m.to(self.device)
                         mem_counter += module_mem
-                elif hasattr(m, "weight"): #only modules with ldm_patched_cast_weights can be set to lowvram mode
+                        real_kept_memory += module_mem
+                    else:
+                        real_async_memory += module_mem
+                        m.to(self.model.offload_device)
+                        # if is_device_cpu(self.model.offload_device):
+                        #     m._apply(lambda x: x.pin_memory())
+                elif hasattr(m, "weight"):
                     m.to(self.device)
                     mem_counter += module_size(m)
-                    print("lowvram: loaded module regularly", m)
+                    print("[Memory Management] Async Loader Disabled for ", m)
+            print("[Async Memory Management] Parameters Loaded to Async Stream (MB) = ", real_async_memory / (1024 * 1024))
+            print("[Async Memory Management] Parameters Loaded to GPU (MB) = ", real_kept_memory / (1024 * 1024))
 
             self.model_accelerated = True
 
@@ -329,7 +344,7 @@ class LoadedModel:
 
         return self.real_model
 
-    def model_unload(self):
+    def model_unload(self, avoid_model_moving=False):
         if self.model_accelerated:
             for m in self.real_model.modules():
                 if hasattr(m, "prev_ldm_patched_cast_weights"):
@@ -338,11 +353,14 @@ class LoadedModel:
 
             self.model_accelerated = False
 
-        self.model.unpatch_model(self.model.offload_device)
-        self.model.model_patches_to(self.model.offload_device)
+        if avoid_model_moving:
+            self.model.unpatch_model()
+        else:
+            self.model.unpatch_model(self.model.offload_device)
+            self.model.model_patches_to(self.model.offload_device)
 
     def __eq__(self, other):
-        return self.model is other.model
+        return self.model is other.model and self.memory_required == other.memory_required
 
 def minimum_inference_memory():
     return (1024 * 1024 * 1024)
@@ -353,9 +371,10 @@ def unload_model_clones(model):
         if model.is_clone(current_loaded_models[i].model):
             to_unload = [i] + to_unload
 
+    print(f"Reuse {len(to_unload)} loaded models")
+
     for i in to_unload:
-        print("unload clone", i)
-        current_loaded_models.pop(i).model_unload()
+        current_loaded_models.pop(i).model_unload(avoid_model_moving=True)
 
 def free_memory(memory_required, device, keep_loaded=[]):
     unloaded_model = False
@@ -390,7 +409,7 @@ def load_models_gpu(models, memory_required=0):
     models_to_load = []
     models_already_loaded = []
     for x in models:
-        loaded_model = LoadedModel(x)
+        loaded_model = LoadedModel(x, memory_required=memory_required)
 
         if loaded_model in current_loaded_models:
             index = current_loaded_models.index(loaded_model)
@@ -408,8 +427,8 @@ def load_models_gpu(models, memory_required=0):
                 free_memory(extra_mem, d, models_already_loaded)
 
         moving_time = time.perf_counter() - execution_start_time
-        if moving_time > 0.1:
-            print(f'Moving model(s) skipped. Freeing memory has taken {moving_time:.2f} seconds')
+        if moving_time > 0.01:
+            print(f'Memory cleanup has taken {moving_time:.2f} seconds')
 
         return
 
@@ -431,25 +450,33 @@ def load_models_gpu(models, memory_required=0):
             vram_set_state = VRAMState.DISABLED
         else:
             vram_set_state = vram_state
-        lowvram_model_memory = 0
+
+        async_kept_memory = -1
+
         if lowvram_available and (vram_set_state == VRAMState.LOW_VRAM or vram_set_state == VRAMState.NORMAL_VRAM):
             model_size = loaded_model.model_memory_required(torch_dev)
             current_free_mem = get_free_memory(torch_dev)
-            lowvram_model_memory = int(max(64 * (1024 * 1024), (current_free_mem - 1024 * (1024 * 1024)) / 1.3 ))
-            if model_size > (current_free_mem - inference_memory): #only switch to lowvram if really necessary
+            estimated_memory_remaining = current_free_mem - model_size - extra_mem
+
+            print("[Memory Management] Current Free Memory (MB) = ", current_free_mem / (1024 * 1024))
+            print("[Memory Management] Model Memory (MB) = ", model_size / (1024 * 1024))
+            print("[Memory Management] Estimated Inference Memory (MB) = ", extra_mem / (1024 * 1024))
+            print("[Memory Management] Estimated Remaining Memory (MB) = ", estimated_memory_remaining / (1024 * 1024))
+
+            if estimated_memory_remaining < 0:
                 vram_set_state = VRAMState.LOW_VRAM
-            else:
-                lowvram_model_memory = 0
+                async_overhead_memory = 1024 * 1024 * 1024
+                async_kept_memory = current_free_mem - extra_mem - async_overhead_memory
+                async_kept_memory = int(max(0, async_kept_memory))
 
         if vram_set_state == VRAMState.NO_VRAM:
-            lowvram_model_memory = 64 * 1024 * 1024
-
-        cur_loaded_model = loaded_model.model_load(lowvram_model_memory)
+            async_kept_memory = 0
+        
+        cur_loaded_model = loaded_model.model_load(async_kept_memory)
         current_loaded_models.insert(0, loaded_model)
 
     moving_time = time.perf_counter() - execution_start_time
-    if moving_time > 0.1:
-        print(f'Moving model(s) has taken {moving_time:.2f} seconds')
+    print(f'Moving model(s) has taken {moving_time:.2f} seconds')
 
     return
 
